@@ -3,3 +3,4 @@ apache-solr/*
 pkg/*
 experiments/*
 examples/rss-app
+*.swp
