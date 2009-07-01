@@ -9,8 +9,7 @@ class MessageTest < RSolrBaseTest
   def test_simple_methods
     [:optimize, :rollback, :commit].each do |meth|
       result = RSolr::Message.send(meth)
-      assert_equal "<#{meth}/>", result.to_s
-      assert_equal String, result.class
+      assert result.to_s =~ %r(<#{meth}/>)
     end
   end
   
@@ -39,26 +38,22 @@ class MessageTest < RSolrBaseTest
   
   def test_delete_by_id
     result = RSolr::Message.delete_by_id(10)
-    assert_equal String, result.class
-    assert_equal '<delete><id>10</id></delete>', result.to_s
+    assert result.to_s(:indent => false) =~ %r(<delete><id>10</id></delete>)
   end
   
   def test_delete_by_multiple_ids
     result = RSolr::Message.delete_by_id([1, 2, 3])
-    assert_equal String, result.class
-    assert_equal '<delete><id>1</id><id>2</id><id>3</id></delete>', result.to_s
+    assert result.to_s(:indent => false) =~ %r(<delete><id>1</id><id>2</id><id>3</id></delete>)
   end
   
   def test_delete_by_query
-    result = RSolr::Message.delete_by_id('status:"LOST"')
-    assert_equal String, result.class
-    assert_equal '<delete><id>status:"LOST"</id></delete>', result.to_s
+    result = RSolr::Message.delete_by_query('status:"LOST"')
+    assert result.to_s(:indent => false) =~ %r(<delete><query>status:"LOST"</query></delete>)
   end
   
   def test_delete_by_multiple_queries
     result = RSolr::Message.delete_by_id(['status:"LOST"', 'quantity:0'])
-    assert_equal String, result.class
-    assert_equal '<delete><id>status:"LOST"</id><id>quantity:0</id></delete>', result.to_s
+    assert result.to_s(:indent => false) =~ %r(<delete><id>status:"LOST"</id><id>quantity:0</id></delete>)
   end
   
   # add a single hash ("doc")

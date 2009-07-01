@@ -113,16 +113,17 @@ class RSolr::Message
 
       xml_document = LibXML::XML::Document.new
       xml_add = LibXML::XML::Node.new("add")
+      add_attrs.each { |k,v| xml_add[k.to_s] = v.to_s }
       data.each do |doc|
         doc = Document.new(doc) if doc.respond_to?(:each_pair)
         yield doc if block_given?
         xml_doc = LibXML::XML::Node.new("doc")
-        doc.attrs.each { |k,v| xml_doc[k] = v }
+        doc.attrs.each { |k,v| xml_doc[k.to_s] = v.to_s }
         doc.fields.each do |field_obj|
           xml_field = LibXML::XML::Node.new("field")
           xml_field["name"] = field_obj.name.to_s
-          field_obj.attrs.each { |k,v| xml_field[k] = v }
-          xml_field.content = field_obj.value
+          field_obj.attrs.each { |k,v| xml_field[k.to_s] = v.to_s }
+          xml_field.content = field_obj.value.to_s
           xml_doc << xml_field
         end
         xml_add << xml_doc
@@ -163,7 +164,7 @@ class RSolr::Message
       def generate_single_element(elem, opts={})
         xml_document = LibXML::XML::Document.new
         xml_elem = LibXML::XML::Node.new(elem)
-        opts.each { |k,v| xml_elem[k] = v }
+        opts.each { |k,v| xml_elem[k.to_s] = v.to_s }
         xml_document.root = xml_elem
         xml_document
       end
@@ -175,7 +176,7 @@ class RSolr::Message
         xml_document.root = xml_delete
         list.each do |id|
           xml_id = LibXML::XML::Node.new(type)
-          xml_id.content = id
+          xml_id.content = id.to_s
           xml_delete << xml_id
         end
         xml_document
