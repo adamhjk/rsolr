@@ -1,6 +1,6 @@
 # http://builder.rubyforge.org/
 require 'rubygems'
-require 'builder'
+require 'libxml'
 
 # The Solr::Message class is the XML generation module for sending updates to Solr.
 
@@ -110,56 +110,76 @@ class RSolr::Message
     #
     def add(data, add_attrs={}, &blk)
       data = [data] unless data.is_a?(Array)
-      xml.add(add_attrs) do |add_node|
-        data.each do |doc|
-          # create doc, passing in fields
-          doc = Document.new(doc) if doc.respond_to?(:each_pair)
-          yield doc if block_given?
-          add_node.doc(doc.attrs) do |doc_node|
-            doc.fields.each do |field_obj|
-              doc_node.field(field_obj.value, field_obj.attrs)
-            end
-          end
+
+      xml_document = LibXML::XML::Document.new
+      xml_add = LibXML::XML::Node.new("add")
+      data.each do |doc|
+        doc = Document.new(doc) if doc.respond_to?(:each_pair)
+        yield doc if block_given?
+        xml_doc = LibXML::XML::Node.new("doc")
+        doc.attrs.each { |k,v| xml_doc[k] = v }
+        doc.fields.each do |field_obj|
+          xml_field = LibXML::XML::Node.new("field")
+          xml_field["name"] = field_obj.name.to_s
+          field_obj.attrs.each { |k,v| xml_field[k] = v }
+          xml_field.content = field_obj.value
+          xml_doc << xml_field
         end
+        xml_add << xml_doc
       end
+      xml_document.root = xml_add
+      xml_document.to_s(:indent => false)
     end
-    
+
     # generates a <commit/> message
     def commit(opts={})
-      xml.commit(opts)
+      generate_single_element("commit", opts)
     end
     
     # generates a <optimize/> message
     def optimize(opts={})
-      xml.optimize(opts)
+      generate_single_element("optimize", opts)
     end
     
     # generates a <rollback/> message
     def rollback
-      xml.rollback
+      generate_single_element("rollback")
     end
     
     # generates a <delete><id>ID</id></delete> message
     # "ids" can be a single value or array of values
     def delete_by_id(ids)
-      ids = [ids] unless ids.is_a?(Array)
-      xml.delete do |xml|
-        ids.each do |id|
-          xml.id(id)
-        end
-      end
+      generate_delete_document("id", ids)
     end
     
     # generates a <delete><query>ID</query></delete> message
     # "queries" can be a single value or an array of values
     def delete_by_query(queries)
-      queries = [queries] unless queries.is_a?(Array)
-      xml.delete do |xml|
-        queries.each do |query|
-          xml.query(query)
-        end
-      end
+      generate_delete_document("query", queries)
     end
+
+    private 
+
+      def generate_single_element(elem, opts={})
+        xml_document = LibXML::XML::Document.new
+        xml_elem = LibXML::XML::Node.new(elem)
+        opts.each { |k,v| xml_elem[k] = v }
+        xml_document.root = xml_elem
+        xml_document
+      end
+
+      def generate_delete_document(type, list)
+        list = [list] unless list.is_a?(Array)
+        xml_document = LibXML::XML::Document.new
+        xml_delete = LibXML::XML::Node.new("delete")
+        xml_document.root = xml_delete
+        list.each do |id|
+          xml_id = LibXML::XML::Node.new(type)
+          xml_id.content = id
+          xml_delete << xml_id
+        end
+        xml_document
+      end
     
   end
   
